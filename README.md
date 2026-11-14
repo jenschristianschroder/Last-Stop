@@ -1,5 +1,9 @@
 # Last Stop
 
+[Play the live pilot](https://last-stop-seven.vercel.app/) · [Release verification](docs/verification.md)
+
+![Last Stop station interface](docs/last-stop-preview.jpg)
+
 A six-player browser murder mystery aboard the Nocturne Express. One passenger is the killer. Everyone investigates, shares evidence, and makes a private accusation before the last station.
 
 The interface is an illustrated train and a collection of paper artifacts: tickets, private dossiers, evidence slips, a notebook, and a sealed accusation. It is responsive and includes keyboard-accessible native dialogs, reduced-motion support, optional ambience, QR invitations, a favicon, and Home Screen metadata.

@@ -31,7 +31,7 @@ export default function Game(){
   const [qr,setQr]=useState(''),[copied,setCopied]=useState(false),[message,setMessage]=useState(''),[note,setNote]=useState(''),[notebook,setNotebook]=useState<Record<string,boolean>>({});
   const [draftBallot,setDraftBallot]=useState<Ballot>({killer:'',weapon:'',scene:''}),[question,setQuestion]=useState(''),[interpretation,setInterpretation]=useState(''),[sound,setSound]=useState(false);
   const current=useRef<RoomView|null>(null),audio=useRef<AudioContext|null>(null),audioNodes=useRef<AudioNode[]>([]);
-  const receive=useCallback((next:RoomView)=>{if(!current.current||next.code!==current.current.code||next.serverNow>=current.current.serverNow){current.current=next;setRoom(next);setOnline(true);setNow(Date.now());}},[]);
+  const receive=useCallback((next:RoomView)=>{if(!current.current||next.code!==current.current.code||next.serverNow>=current.current.serverNow){current.current=next;setRoom(next);setResume(next.code);setOnline(true);setNow(Date.now());}},[]);
   useEffect(()=>{const c=new URLSearchParams(window.location.search).get('room')?.toUpperCase();setName(localStorage.getItem('last-stop-name')||'');setResume(localStorage.getItem('last-stop-room')||'');if(c&&/^[A-HJ-NP-Z2-9]{6}$/.test(c)){setCode(c);setJoinCode(c);}},[]);
   useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),500);return()=>clearInterval(t);},[]);
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),3500);return()=>clearTimeout(t);},[toast]);
@@ -40,7 +40,7 @@ export default function Game(){
     async function poll(){try{const res=await fetch(`/api/rooms/${code}/sync`,{method:'POST',signal:controller.signal});const data=await res.json();if(!alive)return;
       if(res.ok){receive(data.room);localStorage.setItem('last-stop-room',code);}
       else if(res.status===401){setSheet('join');setJoinCode(code);setCode('');setRoom(null);current.current=null;return;}
-      else if(res.status===404){setError(data.error);setCode('');setRoom(null);current.current=null;localStorage.removeItem('last-stop-room');return;}
+      else if(res.status===404){setError(data.error);setCode('');setRoom(null);setResume('');current.current=null;localStorage.removeItem('last-stop-room');return;}
       else setOnline(false);
     }catch{if(alive)setOnline(false);}finally{if(alive)timer=setTimeout(poll,document.hidden?5000:2000);}}
     void poll();const wake=()=>{if(!document.hidden){clearTimeout(timer);void poll();}};document.addEventListener('visibilitychange',wake);
@@ -52,7 +52,7 @@ export default function Game(){
   async function send(command:Command,feedback?:string){if(!room||busy)return;setBusy(true);setError('');try{
     const payload={requestId:crypto.randomUUID(),command};let res=await fetch(`/api/rooms/${room.code}/command`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(res.status===503)res=await fetch(`/api/rooms/${room.code}/command`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const data=await res.json();if(data.room)receive(data.room);if(!res.ok)throw new Error(data.error||'The action could not be saved.');if(data.deleted){leave();return;}if(feedback)setToast(feedback);
+    const data=await res.json();if(data.room)receive(data.room);if(!res.ok)throw new Error(data.error||'The action could not be saved.');if(data.deleted){localStorage.removeItem('last-stop-room');setResume('');leave();return;}if(feedback)setToast(feedback);
   }catch(e){setError(e instanceof Error?e.message:'The signal dropped. Please try again.');}finally{setBusy(false);}}
   async function board(join=false){if(!name.trim()){setError('What name should we put on your ticket?');return;}setBusy(true);setError('');try{
     const requestId=crypto.randomUUID();const target=join?`/api/rooms/${joinCode.trim().toUpperCase()}/join`:'/api/rooms';const payload=JSON.stringify({name:name.trim(),practice,requestId});
