@@ -1,0 +1,280 @@
+{
+  "id": "last-stop-bell-001",
+  "version": "1.0.0",
+  "title": "The Bell at 21:11",
+  "players": 6,
+  "investigators": 5,
+  "rounds": 5,
+  "suspects": [
+    "Ada Reed",
+    "Ben Ward",
+    "Cora Vale",
+    "Daan Voss",
+    "Eli March",
+    "Freya Lind"
+  ],
+  "weapons": [
+    "brass signal bell",
+    "steel spanner",
+    "brass paperweight",
+    "silver letter opener"
+  ],
+  "scenes": [
+    "lounge",
+    "dining",
+    "sleeper",
+    "luggage"
+  ],
+  "truth": {
+    "killer": "Cora Vale",
+    "weapon": "brass signal bell",
+    "scene": "sleeper"
+  },
+  "premises": [
+    "Exactly one listed passenger killed Victor Ash, using exactly one listed object, in exactly one listed carriage between 21:10 and 21:12.",
+    "The body was moved to the vestibule after the killing. Discovery location is not the crime scene.",
+    "Certified records are complete within their stated time and scope. No unrecorded access, accomplice, weapon handoff, or fifth weapon is possible in this authored case.",
+    "Private role screens, personal accounts, and chat are claims, not certified evidence. A player may rely on their own innocence only.",
+    "The six background secrets concern events before 21:05 and impose no additional constraint on the murder tuple."
+  ],
+  "facts": {
+    "F1": {
+      "op": "in",
+      "field": "scene",
+      "values": [
+        "sleeper",
+        "luggage"
+      ]
+    },
+    "F2": {
+      "op": "in",
+      "field": "scene",
+      "values": [
+        "sleeper",
+        "lounge"
+      ]
+    },
+    "F3": {
+      "op": "in",
+      "field": "weapon",
+      "values": [
+        "brass signal bell",
+        "steel spanner"
+      ]
+    },
+    "F4": {
+      "op": "in",
+      "field": "weapon",
+      "values": [
+        "brass signal bell",
+        "brass paperweight"
+      ]
+    },
+    "F5": {
+      "op": "implies_in",
+      "if_field": "scene",
+      "if_value": "sleeper",
+      "field": "killer",
+      "values": [
+        "Ada Reed",
+        "Cora Vale",
+        "Eli March"
+      ]
+    },
+    "F6": {
+      "op": "implies_in",
+      "if_field": "weapon",
+      "if_value": "brass signal bell",
+      "field": "killer",
+      "values": [
+        "Ben Ward",
+        "Cora Vale",
+        "Daan Voss"
+      ]
+    }
+  },
+  "leads": [
+    {
+      "id": "E1",
+      "title": "Carriage fibre comparison",
+      "location": "lounge",
+      "category": "scene analysis",
+      "cost": 2,
+      "unlock": 1,
+      "fact": "F1",
+      "text": "The original attack occurred in either the sleeper or luggage carriage. The matched carriage fabric excludes the lounge and dining carriage."
+    },
+    {
+      "id": "E2",
+      "title": "Timed carriage seals",
+      "location": "dining",
+      "category": "access records",
+      "cost": 2,
+      "unlock": 2,
+      "fact": "F2",
+      "text": "Complete seal records exclude the dining and luggage carriages as the attack site during 21:10\u201321:12. The scene was either the sleeper or lounge. Seals were released at 21:12."
+    },
+    {
+      "id": "E3",
+      "title": "Railway inventory comparison",
+      "location": "luggage",
+      "category": "object analysis",
+      "cost": 3,
+      "unlock": 1,
+      "fact": "F3",
+      "text": "The object used in the attack carried the railway inventory coating. Of the four listed objects, only the brass signal bell and steel spanner have that coating."
+    },
+    {
+      "id": "E4",
+      "title": "Metal sample analysis",
+      "location": "lounge",
+      "category": "object analysis",
+      "cost": 3,
+      "unlock": 2,
+      "fact": "F4",
+      "text": "The attack object was brass. Of the four listed objects, only the signal bell and paperweight are brass."
+    },
+    {
+      "id": "E5a",
+      "title": "Sleeper door audit",
+      "location": "sleeper",
+      "category": "access records",
+      "cost": 2,
+      "unlock": 3,
+      "fact": "F5",
+      "text": "During the murder window, only Ada Reed, Cora Vale, or Eli March could enter the sleeper. Therefore, if the attack occurred there, the killer is one of those three."
+    },
+    {
+      "id": "E6a",
+      "title": "Bell custody audit",
+      "location": "dining",
+      "category": "custody records",
+      "cost": 2,
+      "unlock": 4,
+      "fact": "F6",
+      "text": "The complete bell custody record limits potential handlers during the murder window to Ben Ward, Cora Vale, and Daan Voss. If the bell was the weapon, the killer is one of those three."
+    },
+    {
+      "id": "E5b",
+      "title": "Conductor's duplicate key ledger",
+      "location": "dining",
+      "category": "witness corroboration",
+      "cost": 2,
+      "unlock": 3,
+      "fact": "F5",
+      "text": "Mara's duplicate key ledger, checked against the complete issued-key register, independently confirms that only Ada Reed, Cora Vale, or Eli March could enter the sleeper during 21:10\u201321:12."
+    },
+    {
+      "id": "E6b",
+      "title": "Bell checkout counterfoils",
+      "location": "luggage",
+      "category": "custody records",
+      "cost": 2,
+      "unlock": 4,
+      "fact": "F6",
+      "text": "The station's independently retained checkout counterfoils reconcile every bell transfer and independently limit potential handlers during 21:10\u201321:12 to Ben Ward, Cora Vale, and Daan Voss."
+    }
+  ],
+  "inbox": [
+    {
+      "id": "T1",
+      "round": 1,
+      "ordinary": "Ben was seen carrying the signal bell earlier tonight.",
+      "planted": "Ben was seen carrying the signal bell just before the body was found.",
+      "test": "The source image is from 20:40. Ben returned the bell at 20:45. This report establishes no alibi or custody fact during 21:10\u201321:12."
+    },
+    {
+      "id": "T2",
+      "round": 2,
+      "ordinary": "Ada changed a sleeper reservation before departure.",
+      "planted": "Ada changed a sleeper reservation after the alarm.",
+      "test": "The reservation edit was recorded at 19:55. It establishes no location or access fact during 21:10\u201321:12."
+    },
+    {
+      "id": "T3",
+      "round": 3,
+      "ordinary": "Freya argued with Victor over a letter before dinner.",
+      "planted": "Freya was heard threatening Victor in the sleeper near the murder window.",
+      "test": "The cited recording is an argument in the lounge at 20:15. Its timestamp and location establish no murder-window alibi."
+    },
+    {
+      "id": "T4",
+      "round": 4,
+      "ordinary": "Daan owes Victor money.",
+      "planted": "Daan offered money to hide the signal bell after the alarm.",
+      "test": "The cited payment note concerns a debt agreed at 20:20. It contains no request to hide an object and gives no murder-window alibi."
+    },
+    {
+      "id": "T5",
+      "round": 5,
+      "ordinary": "Eli carried a sealed letter intended for Victor.",
+      "test": "The letter was delivered to Victor's tray at 20:30. It concerns a family dispute and establishes no murder-window alibi."
+    }
+  ],
+  "sabotage": {
+    "tokens": 2,
+    "last_round": 4,
+    "max_per_round": 1,
+    "max_plants": 1,
+    "jam_extra_work": 1,
+    "max_jams_per_lead": 1,
+    "uses_normal_action": false
+  },
+  "proof_cost_band": [
+    14,
+    17
+  ],
+  "proof_policy": [
+    "E1",
+    "E3",
+    "E2",
+    "E4",
+    "E5a",
+    "E6a"
+  ],
+  "timeline": {
+    "minute_origin": "21:00",
+    "edges": [
+      [
+        "lounge",
+        "dining"
+      ],
+      [
+        "dining",
+        "sleeper"
+      ],
+      [
+        "sleeper",
+        "luggage"
+      ],
+      [
+        "luggage",
+        "vestibule"
+      ]
+    ],
+    "minutes_per_edge": 1,
+    "killer_path": [
+      {
+        "minute": 7,
+        "place": "dining",
+        "event": "collects bell"
+      },
+      {
+        "minute": 10,
+        "place": "sleeper",
+        "event": "meets Victor"
+      },
+      {
+        "minute": 11,
+        "place": "sleeper",
+        "event": "attack"
+      },
+      {
+        "minute": 14,
+        "place": "vestibule",
+        "event": "leaves moved body"
+      }
+    ],
+    "body_found_minute": 15
+  }
+}
