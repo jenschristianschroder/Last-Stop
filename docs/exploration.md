@@ -29,3 +29,9 @@ Touch controls distinguish a tap from a page-scroll gesture. A new destination i
 During investigation, the carriage is the main surface. Evidence, private role, notebook and chat sit in a compact icon dock with short labels; unshared findings have a count badge. The full shared board appears between investigations, while detailed evidence remains available on demand in every phase. Clues pulse when searchable, locks/checkmarks distinguish unavailable/completed objects, work dots show cooperative progress, and the search timer uses a circular indicator. Door travel completes automatically after reaching the doorway. Normal walking cancels a pending doorway destination.
 
 Evidence cards show the title, source and verification status; the full authored wording remains in the evidence dialog. No fact or qualifier is shortened into a misleading deduction.
+
+## Mobile viewport correction
+
+Active play (investigation, findings, discussion and final conversation) is a fixed 100dvh surface with safe-area padding. A compact HUD, height-fitted carriage, fixed action strip and dock share the viewport; no gameplay page scrolling is needed. The between-round board and passenger strip are removed from the underlying page and remain accessible through the tools. Portrait and short landscape layouts have dedicated sizing. Full-train overview fits the same scene area. Scene SVG sizing is scoped to the direct child, preventing nested door/search icons from stretching. Dialogs remain separate reading/editing surfaces.
+
+Production build and 19 engine tests pass. Actual iOS viewport, keyboard, and orientation behavior still need device verification.
