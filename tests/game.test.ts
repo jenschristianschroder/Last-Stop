@@ -136,3 +136,18 @@ test('bots travel during exploration and a rehearsal still discovers the complet
   let guard=0;while(r.phase!=='reveal'&&guard++<25)next(r);
   for(const p of r.players.filter(p=>p.bot&&role(p)==='investigator'))assert.deepEqual(candidateKillers(r,p),[TRUTH.killer]);
 });
+
+test('walking is timed, bounded, interruptible and private to nearby passengers',()=>{
+  const r=table();toPlan(r,1);const p=r.players[0],at=r.deadline!-40000;
+  apply(r,p,{type:'walk',x:180,y:540,round:1},at);
+  assert.equal(p.motion!.end,at+2000);
+  assert.throws(()=>apply(r,p,{type:'search',target:'E1',round:1},at+100),/Finish walking/);
+  apply(r,p,{type:'walk',x:180,y:320,round:1},at+1000);
+  assert.equal(p.motion!.from.y,430);assert.equal(p.motion!.end,at+2000);
+  assert.throws(()=>apply(r,p,{type:'walk',x:20,y:320,round:1},at+2100),/aisle/);
+  assert.throws(()=>apply(r,p,{type:'walk',x:NaN,y:320,round:1},at+2100),/aisle/);
+  const q=r.players[1];q.location='dining';assert.equal(project(r,q,at).players.find(x=>x.id===p.id)!.motion,null);
+  apply(r,p,{type:'search',target:'E1',round:1},at+2200);
+  apply(r,p,{type:'walk',x:180,y:400,round:1},at+2300);assert.equal(p.search,null);
+  assert.throws(()=>apply(r,p,{type:'walk',x:180,y:400,round:2},at+2400),/closed/);
+});

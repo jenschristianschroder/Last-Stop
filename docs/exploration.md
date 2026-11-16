@@ -2,7 +2,7 @@
 
 The loop is: choose a destination → travel through the train → search an object → commit fieldwork → compare findings → accuse. Players decide whether to split up or combine limited work on a difficult lead. The killer must visit a lead to obstruct it, creating an opportunity to be seen.
 
-This is a discrete carriage-movement prototype, not a free-roaming character controller. Graphics intentionally use rectangles, labels and colored passenger dots. Searches use a short timer; object-specific puzzles, proximity chat, item trading and roaming within individual cars are future design work, not implemented features.
+The scene is a straight-down SVG carriage with simple furniture and animated character tokens. Tap the aisle to walk; tap an object to approach it. Walking is server-timed at 110 scene units per second and limited to the clear aisle, avoiding furniture. Tap a door to approach, then again to cross. Arrow keys also move the character. Full-train view uses opaque roofs and contains no interiors or passenger positions. Object-specific puzzles, proximity chat and item trading remain future work.
 
 ## Rules
 
@@ -18,6 +18,8 @@ This is a discrete carriage-movement prototype, not a free-roaming character con
 
 ## Verification
 
-18 engine tests cover the original deduction rules, adjacent movement, crossing cooldown, search timer, remote access rejection, stale rounds, pause, hidden remote positions, no idle clue awards, local sabotage, and a full bot match that identifies the unique solution. Production compilation and TypeScript checks pass.
+19 engine tests cover the original deduction rules, adjacent movement, crossing cooldown, search timer, remote access rejection, stale rounds, pause, hidden remote positions, no idle clue awards, local sabotage, and a full bot match that identifies the unique solution. Production compilation and TypeScript checks pass.
 
 Browser verification was attempted, but Chromium could not launch because the execution environment disallowed its process socket. Desktop/mobile visual interaction checks and Neon-backed multiplayer verification remain unverified. Human timing and faction balance require fresh six-player playtests; no measured balance claim is made.
+
+Touch controls distinguish a tap from a page-scroll gesture. A new destination interrupts the current walk at its interpolated position and cancels an unfinished search. Only nearby players receive movement paths. Reduced-motion preference disables decorative footstep and transition animations.
