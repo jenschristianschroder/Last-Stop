@@ -10,7 +10,7 @@ The interface is an illustrated train and a collection of paper artifacts: ticke
 
 ## Play
 
-Create a private train, invite five friends, approve the passenger list, and read the short field guide. Everyone marks themselves ready before the host departs. Use voice/same-room pacing (12 minutes) or text-only pacing (17 minutes).
+Create a private train, invite five friends, approve the passenger list, and read the short field guide. Everyone marks themselves ready before the host departs. Use voice/same-room pacing (about 14 minutes) or text-only pacing (about 20 minutes).
 
 The solo **rehearsal** supplies five clearly labeled scripted passengers and lets the host skip a phase. Bots investigate visible leads, share acquired evidence, and base accusations on their available facts. This is a learning mode, not a substitute for human balance tests.
 
@@ -68,3 +68,13 @@ The conductor has an authored account and a paid evidence lead. Natural-language
 ## Next acceptance gates
 
 Run 20–30 blind six-human playtests with fresh groups, then tune one lever at a time. Measure mobile comprehension, complete-match reliability, costs under concurrent rooms, faction outcomes, and whether language input improves questioning. More player counts, public matchmaking, rankings, voice infrastructure, and a replayable case collection are deliberately outside this first six-player build.
+
+## Exploration prototype
+
+Players now walk between adjacent cars (two seconds per crossing), search a physical object for four seconds, and commit one fieldwork action per round. Searches are local and server-timed; leaving cancels an unfinished search. Committed fieldwork remains saved when moving. Investigations resolve together at the bell and multi-player contributions still combine. Idle humans pass instead of receiving remote clues automatically.
+
+The simple train board shows rectangular cars, named objects and passenger dots. Only passengers in your current car have their locations exposed. Present-day movement is not an alibi for the earlier murder. Testing and retrieving evidence require its source carriage; obstruction requires local presence. Shared evidence and conversation remain available train-wide.
+
+Investigation windows last 60 seconds for voice and 90 seconds for text. Scripted bots walk through adjacent cars during the window, search, then commit; their deductions still use acquired evidence only. Existing persisted players default to the lounge without a schema migration. Start a fresh rehearsal to exercise the full new flow.
+
+See [exploration gameplay notes](docs/exploration.md) for scope and verification.
