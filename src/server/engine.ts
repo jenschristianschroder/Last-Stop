@@ -1,3 +1,4 @@
+import { positionAt, type Motion } from '../lib/movement';
 import { randomInt, randomUUID } from 'node:crypto';
 import { CHARACTERS, CARRIAGES, EMPTY_BALLOT, WEAPONS, character } from '../lib/catalog';
 import type { Action, Ballot, Carriage, Command, Interference, LogEvent, Message, Phase, RoomView } from '../lib/types';
@@ -7,7 +8,7 @@ export class GameError extends Error { constructor(message:string,public status=
 export type Player = {
   id:string;name:string;tokenHash:string;characterId:string|null;ready:boolean;approved:boolean;bot:boolean;
   lastSeen:number;inventory:string[];actions:Record<string,Action>;personalDone:boolean;
-  botPlan?:Action;botAt?:number;location?:Carriage;moveReadyAt?:number;search?:{target:string;readyAt:number;round:number}|null;
+  motion?:Motion|null;botPlan?:Action;botAt?:number;location?:Carriage;moveReadyAt?:number;search?:{target:string;readyAt:number;round:number}|null;
   note:string;notebook:Record<string,boolean>;ballot:Ballot;rates:Record<string,number[]>;
 };
 export type Room = {
@@ -69,7 +70,7 @@ function walkBots(room:Room,now:number){
       const destination=LEADS.find(l=>l.id===action.target)?.location||REPORTS.find(t=>t.id===action.target)?.location;
       if(destination&&destination!==(p.location||'lounge')){
         const from=CARRIAGES.findIndex(c=>c.id===(p.location||'lounge')),to=CARRIAGES.findIndex(c=>c.id===destination);
-        p.location=CARRIAGES[from+Math.sign(to-from)].id;p.botAt+=2000;
+        p.location=CARRIAGES[from+Math.sign(to-from)].id;const entry={x:180,y:to>from?70:570};p.motion={from:entry,to:{x:180,y:320},start:p.botAt,end:p.botAt+2300};p.botAt+=2000;
         if(p.location===destination)p.botAt+=4000;
       }else{p.actions[room.round]=action;p.botPlan=undefined;}
       room.version++;
@@ -173,15 +174,21 @@ export function apply(room:Room,p:Player,command:Command,now:number){
   else if(command.type==='advance'){
     host(room,p);if(!room.practice||room.deadline===null)throw new GameError('Skipping time is only available in rehearsal.');room.deadline=now;advance(room,now);
   }else if(command.type==='delete'){host(room,p);}
-  else if(command.type==='move'||command.type==='search'){
+  else if(command.type==='walk'||command.type==='move'||command.type==='search'){
     if(!p.approved||room.phase!=='plan'||command.round!==room.round||now>=room.deadline!)throw new GameError('This investigation window has closed.');
     if(room.pausedUntil&&now<room.pausedUntil)throw new GameError('The game is paused for a connection.');
     if(now<(p.moveReadyAt||0))throw new GameError('You are still crossing between carriages.');
-    if(command.type==='move'){
+    if(command.type==='walk'){
+      if(!Number.isFinite(command.x)||!Number.isFinite(command.y)||command.x<140||command.x>220||command.y<60||command.y>580)throw new GameError('Stay in the carriage aisle.');
+      rate(p,'walk',now,8,1000);
+      const from=positionAt(p.motion,now),to={x:command.x,y:command.y};
+      p.motion={from,to,start:now,end:now+Math.hypot(to.x-from.x,to.y-from.y)/110*1000};p.search=null;
+    }else if(command.type==='move'){
       const from=CARRIAGES.findIndex(c=>c.id===(p.location||'lounge')),to=CARRIAGES.findIndex(c=>c.id===command.location);
       if(to<0||Math.abs(to-from)!==1)throw new GameError('Walk through the adjoining carriage first.');
-      p.location=command.location;p.moveReadyAt=now+2000;p.search=null;
+      p.location=command.location;p.moveReadyAt=now+2000;p.search=null;const entry={x:180,y:to>from?70:570};p.motion={from:entry,to:entry,start:now,end:now};
     }else{
+      if(p.motion&&now<p.motion.end)throw new GameError('Finish walking before searching.');
       const lead=LEADS.find(l=>l.id===command.target);
       if(!lead||!validAction(room,p,{type:'investigate',target:lead.id}))throw new GameError('That search is not available.');
       if(lead.location!==(p.location||'lounge'))throw new GameError('Travel to the object’s carriage first.');
@@ -228,9 +235,9 @@ export function project(room:Room,p:Player,now:number):RoomView {
   const known=p.inventory.map(evidence).filter((x):x is NonNullable<typeof x>=>!!x);
   const reports=REPORTS.filter((t,i)=>i+1<room.round||(i+1===room.round&&(!['plan','briefing','lobby'].includes(room.phase)||t.id==='T5'))).map((t,i)=>({id:t.id,title:t.title,kind:'untested' as const,location:t.location,text:room.plantedReport===t.id?t.planted!:t.ordinary,round:i+1}));
   return {code:room.code,version:room.version,phase:room.phase,round:room.round,deadline:room.deadline,serverNow:now,preset:room.preset,practice:room.practice,hostId:room.hostId,pausedUntil:room.pausedUntil,pauseUsed:room.pauseUsed,incomplete:room.incomplete,
-    players:room.players.map(x=>({id:x.id,name:x.name,characterId:x.characterId,ready:x.ready,approved:x.approved,bot:x.bot,connected:x.bot||now-x.lastSeen<15000,host:x.id===room.hostId,location:x.id===p.id||(x.location||'lounge')===(p.location||'lounge')?(x.location||'lounge'):null,...(room.phase==='reveal'?{role:role(x)}:{})})),
+    players:room.players.map(x=>({id:x.id,name:x.name,characterId:x.characterId,ready:x.ready,approved:x.approved,bot:x.bot,connected:x.bot||now-x.lastSeen<15000,host:x.id===room.hostId,motion:x.id===p.id||(x.location||'lounge')===(p.location||'lounge')?x.motion||null:null,location:x.id===p.id||(x.location||'lounge')===(p.location||'lounge')?(x.location||'lounge'):null,...(room.phase==='reveal'?{role:role(x)}:{})})),
     leads:LEADS.map(l=>({id:l.id,title:l.title,description:l.description,location:l.location,cost:leadCost(room,l.id),unlock:l.unlock,progress:room.leads[l.id].progress,reserved:room.phase==='plan'?room.players.filter(x=>x.actions[room.round]?.type==='investigate'&&x.actions[room.round]?.target===l.id).length:0,jammed:room.leads[l.id].jammed,complete:room.leads[l.id].progress>=leadCost(room,l.id),owned:p.inventory.includes(l.id),published:room.published.includes(l.id)})),
     board:room.published.map(evidence).filter((x):x is NonNullable<typeof x>=>!!x),reports,tested:room.tested,events:room.events.slice(-20),messages:room.messages,
-    me:{location:p.location||'lounge',moveReadyAt:p.moveReadyAt||0,search:p.search?.round===room.round?p.search:null,id:p.id,name:p.name,approved:p.approved,ready:p.ready,characterId:p.characterId,role:p.characterId?role(p):null,account:d?.account||'',secret:d?.secret||'',objective:d?.objective||'',inventory:known,action:p.actions[room.round]||null,interference:role(p)==='killer'?room.interference[room.round]||null:null,tokens:p.characterId&&role(p)==='killer'?room.tokens:null,planted:role(p)==='killer'?!!room.plantedReport:false,personalDone:p.personalDone,note:p.note,notebook:p.notebook,ballot:p.ballot},
+    me:{motion:p.motion||null,location:p.location||'lounge',moveReadyAt:p.moveReadyAt||0,search:p.search?.round===room.round?p.search:null,id:p.id,name:p.name,approved:p.approved,ready:p.ready,characterId:p.characterId,role:p.characterId?role(p):null,account:d?.account||'',secret:d?.secret||'',objective:d?.objective||'',inventory:known,action:p.actions[room.round]||null,interference:role(p)==='killer'?room.interference[room.round]||null:null,tokens:p.characterId&&role(p)==='killer'?room.tokens:null,planted:role(p)==='killer'?!!room.plantedReport:false,personalDone:p.personalDone,note:p.note,notebook:p.notebook,ballot:p.ballot},
     reveal:room.phase==='reveal'?{...TRUTH,...REVELATION,...result(room),ballots:room.players.map(x=>({name:x.name,characterId:x.characterId!,role:role(x),ballot:x.ballot,reconstruction:role(x)==='investigator'&&x.ballot.killer===TRUTH.killer&&x.ballot.weapon===TRUTH.weapon&&x.ballot.scene===TRUTH.scene}))}:null};
 }
