@@ -3,7 +3,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { CHARACTERS, WEAPONS, CARRIAGES } from '../src/lib/catalog';
 import { advance, apply, candidateKillers, createRoom, GameError, newPlayer, presence, project, result, role, type Room } from '../src/server/engine';
-import { DOSSIERS, LEADS, REVELATION, TRUTH } from '../src/server/case';
+import { DOSSIERS, LEADS, REPORTS, REVELATION, TRUTH } from '../src/server/case';
+// Existing deduction tests perform the new travel/search prerequisites explicitly.
+function fieldwork(r:Room,p:Room['players'][number],command:Extract<import('../src/lib/types').Command,{type:'action'}>,at:number){
+  const target=LEADS.find(l=>l.id===command.action.target)||REPORTS.find(l=>l.id===command.action.target);
+  let time=at-12000;
+  if(target){
+    while((p.location||'lounge')!==target.location){const from=CARRIAGES.findIndex(c=>c.id===(p.location||'lounge')),to=CARRIAGES.findIndex(c=>c.id===target.location);apply(r,p,{type:'move',location:CARRIAGES[from+Math.sign(to-from)].id,round:r.round},time);time+=2000;}
+    if(command.action.type==='investigate')apply(r,p,{type:'search',target:target.id,round:r.round},Math.max(time,at-4000));
+  }
+  apply(r,p,command,at);
+}
 const NOW=1_800_000_000_000;
 function table(practice=false){const room=createRoom('ABC234','Host','hash-host',NOW,practice);if(!practice)for(let i=1;i<6;i++){const p=newPlayer('Guest '+i,'hash-'+i,NOW);p.ready=true;p.approved=true;room.players.push(p);}room.players[0].ready=true;apply(room,room.players[0],{type:'start'},NOW);return room;}
 function next(room:Room){const at=room.deadline!;room.players.forEach(p=>p.lastSeen=at);advance(room,at);return at;}
@@ -29,7 +39,7 @@ test('the authored implementation uses validated clue costs and unlock rounds',(
 test('killer works and obstructs in the same round, without erasing progress',()=>{
   const r=table();toPlan(r,1);const k=r.players.find(p=>role(p)==='killer')!;const at=r.deadline!-1000;
   for(const p of r.players)apply(r,p,{type:'action',round:1,action:{type:'pass'}},at);
-  apply(r,k,{type:'action',round:1,action:{type:'investigate',target:'E1'}},at+100);
+  fieldwork(r,k,{type:'action',round:1,action:{type:'investigate',target:'E1'}},at+100);
   apply(r,k,{type:'interference',round:1,interference:{type:'jam',target:'E1'}},at+100);next(r);
   assert.equal(r.leads.E1.progress,1);assert.equal(r.leads.E1.jammed,true);assert.equal(r.tokens,1);
   toPlan(r,2);assert.throws(()=>apply(r,k,{type:'interference',round:2,interference:{type:'jam',target:'E1'}},r.deadline!-100),/unobstructed/);
@@ -43,24 +53,24 @@ test('a guessed future evidence ID cannot bypass availability or acquisition',()
 });
 test('withdrawn reservations cannot block another player committing to the same lead',()=>{
   const r=table();toPlan(r,1);const at=r.deadline!-1000;
-  for(const p of r.players)apply(r,p,{type:'action',round:1,action:{type:'investigate',target:'E1'}},at);
+  for(const p of r.players)fieldwork(r,p,{type:'action',round:1,action:{type:'investigate',target:'E1'}},at);
   apply(r,r.players[0],{type:'action',round:1,action:{type:'pass'}},at+10);next(r);
   assert.equal(r.leads.E1.progress,2);for(const p of r.players.slice(1))assert.ok(p.inventory.includes('E1'));
 });
 test('previous contributors receive the completed card and withheld cards can be retrieved',()=>{
   const r=table();toPlan(r,1);const k=r.players.find(p=>role(p)==='killer')!,p=r.players.find(p=>role(p)==='investigator')!;
   for(const x of r.players)apply(r,x,{type:'action',round:1,action:{type:'pass'}},r.deadline!-100);
-  apply(r,k,{type:'action',round:1,action:{type:'investigate',target:'E1'}},r.deadline!-50);next(r);
+  fieldwork(r,k,{type:'action',round:1,action:{type:'investigate',target:'E1'}},r.deadline!-50);next(r);
   toPlan(r,2);for(const x of r.players)apply(r,x,{type:'action',round:2,action:{type:'pass'}},r.deadline!-100);
-  apply(r,k,{type:'action',round:2,action:{type:'investigate',target:'E1'}},r.deadline!-50);next(r);
+  fieldwork(r,k,{type:'action',round:2,action:{type:'investigate',target:'E1'}},r.deadline!-50);next(r);
   assert.ok(k.inventory.includes('E1'));assert.ok(!r.published.includes('E1'));assert.ok(!p.inventory.includes('E1'));
-  toPlan(r,3);apply(r,p,{type:'action',round:3,action:{type:'retrieve',target:'E1'}},r.deadline!-100);next(r);assert.ok(p.inventory.includes('E1'));
+  toPlan(r,3);fieldwork(r,p,{type:'action',round:3,action:{type:'retrieve',target:'E1'}},r.deadline!-100);next(r);assert.ok(p.inventory.includes('E1'));
 });
 test('planting replaces the scheduled report without changing timing or count; a test publishes correction',()=>{
   const r=table();toPlan(r,1);const k=r.players.find(p=>role(p)==='killer')!,p=r.players.find(p=>role(p)==='investigator')!;
   assert.equal(project(r,p,NOW).reports.length,0);apply(r,k,{type:'interference',round:1,interference:{type:'plant'}},r.deadline!-50);next(r);
   const view=project(r,p,NOW);assert.equal(view.reports.length,1);assert.ok(view.reports[0].text.includes('just before'));assert.equal(view.me.planted,false);
-  toPlan(r,2);apply(r,p,{type:'action',round:2,action:{type:'test',target:'T1'}},r.deadline!-50);next(r);assert.ok(r.published.includes('T1-test'));assert.ok(project(r,p,NOW).board.some(e=>e.text.includes('20:40')));
+  toPlan(r,2);fieldwork(r,p,{type:'action',round:2,action:{type:'test',target:'T1'}},r.deadline!-50);next(r);assert.ok(r.published.includes('T1-test'));assert.ok(project(r,p,NOW).board.some(e=>e.text.includes('20:40')));
 });
 test('no round-five interference; a stale round command cannot spend an action',()=>{
   const r=table();toPlan(r,5);const k=r.players.find(p=>role(p)==='killer')!;
@@ -69,7 +79,7 @@ test('no round-five interference; a stale round command cannot spend an action',
 });
 test('the final unplantable report arrives before the last action so it can be tested',()=>{
   const r=table();toPlan(r,5);const p=r.players[0];assert.ok(project(r,p,NOW).reports.some(t=>t.id==='T5'));
-  apply(r,p,{type:'action',round:5,action:{type:'test',target:'T5'}},r.deadline!-50);next(r);assert.ok(r.published.includes('T5-test'));
+  fieldwork(r,p,{type:'action',round:5,action:{type:'test',target:'T5'}},r.deadline!-50);next(r);assert.ok(r.published.includes('T5-test'));
 });
 test('all early certified facts leave at least two candidate killers from every innocent perspective',()=>{
   const r=table();r.published=LEADS.filter(l=>l.unlock<4).map(l=>l.id);
@@ -83,8 +93,8 @@ test('strict-majority outcome ignores hostile cover ballots and reconstruction g
   }
 });
 test('persisted deadlines advance exactly once and do not drift with request time',()=>{
-  const r=table();const first=r.deadline!;advance(r,first+1234);assert.equal(r.phase,'plan');assert.equal(r.deadline,first+30000);const version=r.version;advance(r,first+1234);assert.equal(r.version,version);
-  advance(r,NOW+13*60*1000);assert.equal(r.phase,'reveal');assert.equal(r.incomplete,true);assert.equal(r.players.length,6);assert.equal(result(r).required,3);
+  const r=table();const first=r.deadline!;advance(r,first+1234);assert.equal(r.phase,'plan');assert.equal(r.deadline,first+60000);const version=r.version;advance(r,first+1234);assert.equal(r.version,version);
+  advance(r,NOW+18*60*1000);assert.equal(r.phase,'reveal');assert.equal(r.incomplete,true);assert.equal(r.players.length,6);assert.equal(result(r).required,3);
 });
 test('one reconnect pause shifts the deadline once; it never removes a voter',()=>{
   const r=table();toPlan(r,1);const before=r.deadline!,at=before-15000;presence(r,r.players[0],at);assert.equal(r.pauseUsed,true);assert.equal(r.deadline,before+60000);
@@ -92,4 +102,37 @@ test('one reconnect pause shifts the deadline once; it never removes a voter',()
 });
 test('a complete rehearsal reaches reveal with knowledge-limited bots',()=>{
   const r=table(true);let guard=0;while(r.phase!=='reveal'&&guard++<25){const at=r.deadline!;apply(r,r.players[0],{type:'advance'},at-1);}assert.equal(r.phase,'reveal');assert.equal(project(r,r.players[0],NOW).reveal!.ballots.length,6);assert.ok(r.published.length>0);
+});
+
+test('travel enforces adjacency, crossing time, round and pause; searches require local presence and time',()=>{
+  const r=table();toPlan(r,1);const p=r.players[0],at=r.deadline!-50000;
+  assert.throws(()=>apply(r,p,{type:'move',location:'luggage',round:1},at),/adjoining/);
+  assert.throws(()=>apply(r,p,{type:'search',target:'E3',round:1},at),/Travel/);
+  apply(r,p,{type:'search',target:'E1',round:1},at);
+  assert.throws(()=>apply(r,p,{type:'action',round:1,action:{type:'investigate',target:'E1'}},at+3999),/Search/);
+  apply(r,p,{type:'action',round:1,action:{type:'investigate',target:'E1'}},at+4000);
+  apply(r,p,{type:'move',location:'dining',round:1},at+5000);
+  assert.equal(p.search,null);assert.equal(p.actions[1].target,'E1');
+  assert.throws(()=>apply(r,p,{type:'move',location:'sleeper',round:1},at+5001),/crossing/);
+  assert.throws(()=>apply(r,p,{type:'move',location:'sleeper',round:2},at+7000),/closed/);
+  r.pausedUntil=at+20000;
+  assert.throws(()=>apply(r,p,{type:'move',location:'sleeper',round:1},at+7000),/paused/);
+  r.pausedUntil=null;next(r);assert.equal(r.leads.E1.progress,1);
+  assert.throws(()=>apply(r,p,{type:'move',location:'sleeper',round:1},r.deadline!-100),/closed/);
+});
+test('only nearby passengers are located; idle humans collect no clues; sabotage requires presence',()=>{
+  const r=table();toPlan(r,1);const p=r.players[0],other=r.players[1],at=r.deadline!-20000;
+  apply(r,other,{type:'move',location:'dining',round:1},at);
+  assert.equal(project(r,p,at).players.find(x=>x.id===other.id)!.location,null);
+  assert.equal(project(r,other,at).me.location,'dining');
+  const killer=r.players.find(x=>role(x)==='killer')!;
+  assert.throws(()=>apply(r,killer,{type:'interference',round:1,interference:{type:'jam',target:'E3'}},at),/unobstructed/);
+  next(r);assert.ok(r.players.every(x=>x.inventory.length===0));assert.equal(r.leads.E1.progress,0);
+});
+test('bots travel during exploration and a rehearsal still discovers the complete deduction',()=>{
+  const r=table(true);toPlan(r,1);const start=r.deadline!-60000;
+  advance(r,start+2000);assert.ok(r.players.some(p=>p.bot&&p.location==='dining'));
+  advance(r,start+6000);assert.ok(r.players.some(p=>p.bot&&p.location==='luggage'));
+  let guard=0;while(r.phase!=='reveal'&&guard++<25)next(r);
+  for(const p of r.players.filter(p=>p.bot&&role(p)==='investigator'))assert.deepEqual(candidateKillers(r,p),[TRUTH.killer]);
 });
